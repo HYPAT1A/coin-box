@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Coin Box</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+        }
+
+        .game-container {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 
+                0 25px 50px -12px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ffd700, #ffaa00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stats {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .stat-box {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255, 215, 0, 0.15);
+            padding: 6px 12px;
+            border-radius: 50px;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+
+        .stat-label {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .stat-value {
+            color: #ffd700;
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .stat-value.timer {
+            color: #fff;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .stat-value.timer.warning {
+            color: #ef4444;
+            animation: pulse 0.5s ease infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .target-display {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .target-text {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.75rem;
+        }
+
+        .target-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .game-board {
+            position: relative;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            overflow: hidden;
+            cursor: crosshair;
+            user-select: none;
+            touch-action: none;
+        }
+
+        .selection-box {
+            position: absolute;
+            border: 3px dashed #ffd700;
+            background: rgba(255, 215, 0, 0.15);
+            border-radius: 6px;
+            pointer-events: none;
+            display: none;
+            z-index: 10;
+        }
+
+        .coin {
+            position: absolute;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: #1a1a2e;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .coin::before {
+            content: '';
+            position: absolute;
+            inset: 2px;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .coin.gold {
+            background: linear-gradient(145deg, #ffd700, #ffaa00);
+            box-shadow: 0 2px 6px rgba(255, 215, 0, 0.4);
+        }
+
+        .coin.silver {
+            background: linear-gradient(145deg, #e8e8e8, #b8b8b8);
+            box-shadow: 0 2px 6px rgba(200, 200, 200, 0.4);
+        }
+
+        .coin.copper {
+            background: linear-gradient(145deg, #ff8c42, #d4621a);
+            box-shadow: 0 2px 6px rgba(255, 140, 66, 0.4);
+        }
+
+        .coin.bronze {
+            background: linear-gradient(145deg, #cd7f32, #8b5a2b);
+            box-shadow: 0 2px 6px rgba(205, 127, 50, 0.4);
+        }
+
+        .coin.light {
+            filter: brightness(1.3);
+        }
+
+        .coin.selected {
+            transform: scale(1.15);
+            z-index: 5;
+        }
+
+        .coin.matched {
+            animation: popOut 0.3s ease forwards;
+        }
+
+        @keyframes popOut {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        .controls {
+            margin-top: 10px;
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #ffd700, #ffaa00);
+            color: #1a1a2e;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .btn-secondary.active {
+            background: rgba(255, 215, 0, 0.2);
+            border-color: rgba(255, 215, 0, 0.5);
+        }
+
+        .game-over-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .game-over-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .game-over-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #ffd700;
+            margin-bottom: 16px;
+        }
+
+        .game-over-score {
+            font-size: 1.25rem;
+            color: #fff;
+            margin-bottom: 24px;
+        }
+
+        .instructions {
+            text-align: center;
+            margin-top: 10px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.7rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1>🪙 Coin Box</h1>
+            <div class="stats">
+                <div class="stat-box">
+                    <span class="stat-label">Time</span>
+                    <span class="stat-value timer" id="timer">1:00</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Score</span>
+                    <span class="stat-value" id="score">0</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="target-display">
+            <div class="target-text">Drag to select coins that add up to</div>
+            <div class="target-number" id="target">10</div>
+        </div>
+
+        <div class="game-board" id="board">
+            <div class="selection-box" id="selectionBox"></div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-secondary" id="lightBtn">Light</button>
+            <button class="btn btn-primary" id="resetBtn">New Game</button>
+        </div>
+    </div>
+
+    <div class="instructions">
+        Click and drag to enclose coins. Numbers must sum to 10.
+    </div>
+
+    <div class="game-over-overlay" id="gameOverOverlay">
+        <div class="game-over-title">Time's Up!</div>
+        <div class="game-over-score">Final Score: <span id="finalScore">0</span></div>
+        <button class="btn btn-primary" id="playAgainBtn">Play Again</button>
+    </div>
+
+    <script>
+        const TARGET_SUM = 10;
+        const GRID_COLS = 12;
+        const GRID_ROWS = 12;
+        const GAME_DURATION = 60;
+
+        let coinSize, padding;
+        let coins = [];
+        let score = 0;
+        let isDragging = false;
+        let startX, startY;
+        let lightColors = false;
+        let timeLeft = GAME_DURATION;
+        let timerInterval = null;
+        let gameActive = false;
+
+        const board = document.getElementById('board');
+        const selectionBox = document.getElementById('selectionBox');
+        const scoreDisplay = document.getElementById('score');
+        const timerDisplay = document.getElementById('timer');
+        const lightBtn = document.getElementById('lightBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const gameOverOverlay = document.getElementById('gameOverOverlay');
+        const finalScoreDisplay = document.getElementById('finalScore');
+        const playAgainBtn = document.getElementById('playAgainBtn');
+
+        function calculateDimensions() {
+            const container = document.querySelector('.game-container');
+            const containerWidth = container.offsetWidth - 32;
+            const containerHeight = window.innerHeight - 180;
+            
+            const availableSize = Math.min(containerWidth, containerHeight);
+            
+            const totalGap = 3;
+            const totalPadding = 10;
+            const coinWithGap = (availableSize - totalPadding) / GRID_COLS - totalGap;
+            coinSize = Math.floor(coinWithGap);
+            padding = 5;
+            
+            const boardSize = padding * 2 + GRID_COLS * coinSize + (GRID_COLS - 1) * 3;
+            board.style.width = boardSize + 'px';
+            board.style.height = boardSize + 'px';
+        }
+
+        function getRandomValue() {
+            return Math.floor(Math.random() * 9) + 1;
+        }
+
+        function getCoinClass() {
+            const rand = Math.random();
+            if (rand < 0.25) return 'gold';
+            if (rand < 0.5) return 'silver';
+            if (rand < 0.75) return 'copper';
+            return 'bronze';
+        }
+
+        function createCoins() {
+            board.querySelectorAll('.coin').forEach(c => c.remove());
+            coins = [];
+
+            for (let row = 0; row < GRID_ROWS; row++) {
+                for (let col = 0; col < GRID_COLS; col++) {
+                    const value = getRandomValue();
+                    
+                    const coin = document.createElement('div');
+                    coin.className = `coin ${getCoinClass()}${lightColors ? ' light' : ''}`;
+                    coin.textContent = value;
+                    coin.dataset.row = row;
+                    coin.dataset.col = col;
+                    coin.dataset.value = value;
+                    
+                    const x = padding + col * (coinSize + 3);
+                    const y = padding + row * (coinSize + 3);
+                    
+                    coin.style.width = coinSize + 'px';
+                    coin.style.height = coinSize + 'px';
+                    coin.style.fontSize = (coinSize * 0.45) + 'px';
+                    coin.style.left = x + 'px';
+                    coin.style.top = y + 'px';
+                    
+                    board.appendChild(coin);
+                    coins.push({
+                        element: coin,
+                        row, col, value, x, y
+                    });
+                }
+            }
+        }
+
+        function isInsideSelection(coin) {
+            const boxRect = selectionBox.getBoundingClientRect();
+            const coinRect = coin.element.getBoundingClientRect();
+
+            const coinCenterX = coinRect.left + coinRect.width / 2;
+            const coinCenterY = coinRect.top + coinRect.height / 2;
+
+            return (
+                coinCenterX >= boxRect.left &&
+                coinCenterX <= boxRect.right &&
+                coinCenterY >= boxRect.top &&
+                coinCenterY <= boxRect.bottom
+            );
+        }
+
+        function getSelectedCoins() {
+            return coins.filter(coin => coin.element.classList.contains('selected'));
+        }
+
+        function sumSelected() {
+            return getSelectedCoins().reduce((sum, coin) => sum + coin.value, 0);
+        }
+
+        function clearSelection() {
+            coins.forEach(coin => {
+                coin.element.classList.remove('selected');
+            });
+            selectionBox.style.display = 'none';
+        }
+
+        function checkSelection() {
+            const selected = getSelectedCoins();
+            if (selected.length === 0) return;
+
+            const sum = sumSelected();
+            
+            if (sum === TARGET_SUM) {
+                const points = selected.length;
+                score += points;
+                scoreDisplay.textContent = score;
+
+                selected.forEach(coin => {
+                    coin.element.classList.add('matched');
+                });
+
+                setTimeout(() => {
+                    selected.forEach(coin => {
+                        coin.element.remove();
+                        const idx = coins.indexOf(coin);
+                        if (idx > -1) coins.splice(idx, 1);
+                    });
+                }, 300);
+            }
+
+            setTimeout(clearSelection, 300);
+        }
+
+        function updateSelectionBox(currentX, currentY) {
+            const minX = Math.min(startX, currentX);
+            const minY = Math.min(startY, currentY);
+            const width = Math.abs(currentX - startX);
+            const height = Math.abs(currentY - startY);
+
+            selectionBox.style.left = `${minX - board.getBoundingClientRect().left}px`;
+            selectionBox.style.top = `${minY - board.getBoundingClientRect().top}px`;
+            selectionBox.style.width = `${width}px`;
+            selectionBox.style.height = `${height}px`;
+            selectionBox.style.display = 'block';
+
+            coins.forEach(coin => {
+                if (isInsideSelection(coin)) {
+                    coin.element.classList.add('selected');
+                } else {
+                    coin.element.classList.remove('selected');
+                }
+            });
+        }
+
+        function updateTimer() {
+            timeLeft--;
+            const mins = Math.floor(timeLeft / 60);
+            const secs = timeLeft % 60;
+            timerDisplay.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+            
+            if (timeLeft <= 10) {
+                timerDisplay.classList.add('warning');
+            }
+            
+            if (timeLeft <= 0) {
+                endGame();
+            }
+        }
+
+        function startGame() {
+            score = 0;
+            timeLeft = GAME_DURATION;
+            gameActive = true;
+            
+            scoreDisplay.textContent = '0';
+            timerDisplay.textContent = '1:00';
+            timerDisplay.classList.remove('warning');
+            gameOverOverlay.classList.remove('show');
+            
+            calculateDimensions();
+            createCoins();
+            
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        function endGame() {
+            gameActive = false;
+            clearInterval(timerInterval);
+            finalScoreDisplay.textContent = score;
+            gameOverOverlay.classList.add('show');
+        }
+
+        // Event listeners
+        board.addEventListener('mousedown', (e) => {
+            if (!gameActive) return;
+            if (e.target.classList.contains('coin')) return;
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            clearSelection();
+        });
+
+        board.addEventListener('mousemove', (e) => {
+            if (!isDragging || !gameActive) return;
+            updateSelectionBox(e.clientX, e.clientY);
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDragging && gameActive) {
+                isDragging = false;
+                checkSelection();
+            }
+        });
+
+        // Touch support
+        board.addEventListener('touchstart', (e) => {
+            if (!gameActive) return;
+            if (e.target.classList.contains('coin')) return;
+            e.preventDefault();
+            const touch = e.touches[0];
+            isDragging = true;
+            startX = touch.clientX;
+            startY = touch.clientY;
+            clearSelection();
+        }, { passive: false });
+
+        board.addEventListener('touchmove', (e) => {
+            if (!isDragging || !gameActive) return;
+            e.preventDefault();
+            const touch = e.touches[0];
+            updateSelectionBox(touch.clientX, touch.clientY);
+        }, { passive: false });
+
+        document.addEventListener('touchend', () => {
+            if (isDragging && gameActive) {
+                isDragging = false;
+                checkSelection();
+            }
+        });
+
+        lightBtn.addEventListener('click', () => {
+            lightColors = !lightColors;
+            lightBtn.classList.toggle('active', lightColors);
+            document.querySelectorAll('.coin').forEach(coin => {
+                coin.classList.toggle('light', lightColors);
+            });
+        });
+
+        resetBtn.addEventListener('click', startGame);
+        playAgainBtn.addEventListener('click', startGame);
+
+        window.addEventListener('resize', () => {
+            if (gameActive) {
+                calculateDimensions();
+                createCoins();
+            }
+        });
+
+        // Initialize
+        startGame();
+    </script>
+</body>
+</html>
